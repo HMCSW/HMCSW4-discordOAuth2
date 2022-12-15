@@ -1,0 +1,11 @@
+{
+  "name": "discordOAuth2",
+  "description": "discordOAuth2",
+  "identifier": "discordOAuth2",
+  "title": "discordOAuth2",
+  "version": "1.0.0",
+  "type": "loginMethod",
+  "argument": [],
+  "authors": [],
+  "minimumCoreVersion": "37"
+}
