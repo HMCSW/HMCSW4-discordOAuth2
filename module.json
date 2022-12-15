@@ -3,9 +3,15 @@
   "description": "discordOAuth2",
   "identifier": "discordOAuth2",
   "title": "discordOAuth2",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "type": "loginMethod",
   "argument": [],
-  "authors": [],
-  "minimumCoreVersion": "37"
+  "authors": [
+    {
+      "name": "Moritz Walter",
+      "email": "moritz.walter@the-systems.eu"
+    }
+  ],
+  "minimumCoreVersion": "56",
+  "module_id": 22
 }

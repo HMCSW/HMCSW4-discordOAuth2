@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "secret": "",
+  "public": "",
+
+  "customer_role":0,
+  "guild_id":0,
+  "bot_token":"",
+  "shortName": "Discord"
+}
