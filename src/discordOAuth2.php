@@ -6,10 +6,10 @@ use RestCord\DiscordClient;
 use hmcsw\objects\user\User;
 use hmcsw\service\config\ConfigService;
 use RestCord\RateLimit\RatelimitException;
-use hmcsw\service\module\moduleLoginMethodRepository;
+use hmcsw\service\module\ModuleLoginMethodRepository;
 use GuzzleHttp\Command\Exception\CommandClientException;
 
-class discordOAuth2 implements moduleLoginMethodRepository
+class discordOAuth2 implements ModuleLoginMethodRepository
 {
   private array $config;
   private readonly string $uri;
