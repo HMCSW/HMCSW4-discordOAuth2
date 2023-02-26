@@ -25,7 +25,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
 
     $this->tokenURL = "https://discordapp.com/api/oauth2/token";
     $this->resourceURL = "https://discordapp.com/api/users/@me";
-    $this->uri = ConfigService::getUrl() . "/auth/r/".$this->getModuleInfo()['identifier'];
+    $this->uri = ConfigService::getWebUrl() . "/auth/r/".$this->getModuleInfo()['identifier'];
     $this->public = $this->config['public'];
     $this->secret = $this->config['secret'];
     $this->scope = "identify email";
