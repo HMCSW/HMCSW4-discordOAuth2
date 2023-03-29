@@ -1,13 +1,13 @@
 <?php
 
 namespace hmcswModule\discordOAuth2\src;
-use hmcsw\hmcsw4;
-use RestCord\DiscordClient;
+use GuzzleHttp\Command\Exception\CommandClientException;
+use hmcsw\exception\ApiErrorException;
 use hmcsw\objects\user\User;
 use hmcsw\service\config\ConfigService;
-use RestCord\RateLimit\RatelimitException;
 use hmcsw\service\module\ModuleLoginMethodRepository;
-use GuzzleHttp\Command\Exception\CommandClientException;
+use RestCord\DiscordClient;
+use RestCord\RateLimit\RatelimitException;
 
 class discordOAuth2 implements ModuleLoginMethodRepository
 {
@@ -63,23 +63,21 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     return new DiscordClient(['token' => $this->config['bot_token'], "throwOnRatelimit" => true]);
   }
 
-  public function onConnect(User $user, $externalId): array
+  public function onConnect(User $user, $externalId): void
   {
     try {
       $this->getDiscord()->guild->addGuildMemberRole(['guild.id' => (int)$this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
-      return ["success" => true];
     } catch (RatelimitException|CommandClientException $e) {
-      return ["success" => false, "response" => ["error_code" => $e->getCode(), "error_message" => $e->getMessage()]];
+      throw new ApiErrorException($e->getMessage(), $e->getCode());
     }
   }
 
-  public function onDisconnect(User $user, $externalId): array
-  {
+  public function onDisconnect(User $user, $externalId): void
+  { 
     try {
       $this->getDiscord()->guild->removeGuildMemberRole(['guild.id' => $this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
-      return ["success" => true];
     } catch (RatelimitException|CommandClientException $e) {
-      return ["success" => false, "response" => ["error_code" => $e->getCode(), "error_message" => $e->getMessage()]];
+      throw new ApiErrorException($e->getMessage(), $e->getCode());
     }
   }
 
@@ -131,7 +129,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
       return ["success" => false, "response" => ["error_code" => "externalError", "error_message" => "accessToken wrong", "error_response" => $info_resp], "status_code" => 400];
     }
 
-    return ["success" => true, "response" => [
+    return [
       "token" => [],
       "data" => [
         "user_id" => $info_resp['id'],
@@ -140,7 +138,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
         "icon" => 'https://cdn.discord.com/avatars/'. $info_resp['id']. '/'. $info_resp['avatar'] .'.png'
 
       ]
-    ]];
+    ];
 
   }
 
