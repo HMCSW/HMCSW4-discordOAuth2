@@ -1,13 +1,11 @@
 <?php
 
 namespace hmcswModule\discordOAuth2\src;
-use GuzzleHttp\Command\Exception\CommandClientException;
 use hmcsw\exception\ApiErrorException;
 use hmcsw\objects\user\User;
 use hmcsw\service\config\ConfigService;
 use hmcsw\service\module\ModuleLoginMethodRepository;
 use RestCord\DiscordClient;
-use RestCord\RateLimit\RatelimitException;
 
 class discordOAuth2 implements ModuleLoginMethodRepository
 {
@@ -67,7 +65,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
   {
     try {
       $this->getDiscord()->guild->addGuildMemberRole(['guild.id' => (int)$this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
-    } catch (RatelimitException|CommandClientException $e) {
+    } catch (\Exception $e) {
       throw new ApiErrorException($e->getMessage(), $e->getCode());
     }
   }
@@ -76,7 +74,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
   { 
     try {
       $this->getDiscord()->guild->removeGuildMemberRole(['guild.id' => $this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
-    } catch (RatelimitException|CommandClientException $e) {
+    } catch (\Exception $e) {
       throw new ApiErrorException($e->getMessage(), $e->getCode());
     }
   }
@@ -105,7 +103,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     curl_close($token);
 
     if (isset($resp['message'])) {
-      return ["success" => false, "response" => ["error_code" => "externalError", "error_message" => "authCode wrong", "error_response" => $resp], "status_code" => 400];
+      throw new ApiErrorException($resp['message'], $resp['code']);
     }
 
     $scopes = explode(" ", $resp['scope']);
@@ -113,7 +111,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
 
     foreach($needScopes as $scope){
       if(!in_array($scope, $needScopes)){
-        return ["success" => false, "response" => ["error_code" => "externalError", "error_message" => "scope wrong", "error_response" => ["give" => $resp['scope'], "need" => $this->scope]], "status_code" => 400];
+        throw new ApiErrorException("scope wrong", 400, ["give" => $resp['scope'], "need" => $this->scope]);
       }
     }
 
@@ -126,7 +124,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     $info_resp = json_decode(curl_exec($info), true);
 
     if (isset($info_resp['message'])) {
-      return ["success" => false, "response" => ["error_code" => "externalError", "error_message" => "accessToken wrong", "error_response" => $info_resp], "status_code" => 400];
+      throw new ApiErrorException($info_resp['message'], $info_resp['code']);
     }
 
     return [
