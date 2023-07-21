@@ -66,7 +66,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     try {
       $this->getDiscord()->guild->addGuildMemberRole(['guild.id' => (int)$this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
     } catch (\Exception $e) {
-      throw new ApiErrorException($e->getMessage(), $e->getCode());
+
     }
   }
 
