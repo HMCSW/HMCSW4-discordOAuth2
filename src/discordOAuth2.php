@@ -2,9 +2,10 @@
 
 namespace hmcswModule\discordOAuth2\src;
 use hmcsw\exception\ApiErrorException;
-use hmcsw\objects\user\User;
+use hmcsw\infrastructure\module\loginMethod\LoginMethodAuthorizeDto;
+use hmcsw\infrastructure\module\ModuleLoginMethodRepository;
 use hmcsw\service\config\ConfigService;
-use hmcsw\service\module\ModuleLoginMethodRepository;
+use hmcsw\user\domain\User;
 use RestCord\DiscordClient;
 
 class discordOAuth2 implements ModuleLoginMethodRepository
@@ -23,7 +24,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
 
     $this->tokenURL = "https://discordapp.com/api/oauth2/token";
     $this->resourceURL = "https://discordapp.com/api/users/@me";
-    $this->uri = ConfigService::getWebUrl() . "/auth/r/".$this->getModuleInfo()['identifier'];
+    $this->uri = ConfigService::getPublicUrl() . "/auth/r/".$this->getModuleInfo()['identifier'];
     $this->public = $this->config['public'];
     $this->secret = $this->config['secret'];
     $this->scope = "identify email";
@@ -84,7 +85,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     return "https://discordapp.com/oauth2/authorize?response_type=code&client_id=" . $this->public . "&state=".$state."&scope=" . rawurlencode($this->scope) . "&redirect_uri=" . $this->uri;
   }
 
-  public function authorize(string $code): array
+  public function authorize(string $code): LoginMethodAuthorizeDto
   {
     $token = curl_init();
     curl_setopt_array($token, [
@@ -106,12 +107,11 @@ class discordOAuth2 implements ModuleLoginMethodRepository
       throw new ApiErrorException($resp['message'], $resp['code']);
     }
 
-    $scopes = explode(" ", $resp['scope']);
     $needScopes = explode(" ", $this->scope);
 
     foreach($needScopes as $scope){
       if(!in_array($scope, $needScopes)){
-        throw new ApiErrorException("scope wrong", 400, ["give" => $resp['scope'], "need" => $this->scope]);
+        throw new ApiErrorException("scope wrong", ["give" => $resp['scope'], "need" => $this->scope]);
       }
     }
 
@@ -127,20 +127,10 @@ class discordOAuth2 implements ModuleLoginMethodRepository
       throw new ApiErrorException($info_resp['message'], $info_resp['code']);
     }
 
-    return [
-      "token" => [],
-      "data" => [
-        "user_id" => $info_resp['id'],
-        "email" => $info_resp['email'],
-        "username" => $info_resp['username'],
-        "icon" => 'https://cdn.discord.com/avatars/'. $info_resp['id']. '/'. $info_resp['avatar'] .'.png'
-
-      ]
-    ];
-
+    return new LoginMethodAuthorizeDto($info_resp['id'], $info_resp['email'], $info_resp['username'], 'https://cdn.discord.com/avatars/'. $info_resp['id']. '/'. $info_resp['avatar'] .'.png');
   }
 
-  public function getMessages (string $lang): array|bool
+  public function getMessages (string $lang): array|false
   {
     if(!file_exists(__DIR__.'/../messages/'.$lang.'.json')){
       return false;
@@ -152,5 +142,15 @@ class discordOAuth2 implements ModuleLoginMethodRepository
   public function getProperties (): array
   {
     return [];
+  }
+
+  public function getName(): string
+  {
+    return $this->getModuleInfo()['name'];
+  }
+
+  public function getIdentifier(): string
+  {
+    return $this->getModuleInfo()['identifier'];
   }
 }
