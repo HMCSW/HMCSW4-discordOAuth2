@@ -1,11 +1,13 @@
 <?php
 
 namespace hmcswModule\discordOAuth2\src;
+use hmcsw\auth\service\AuthorizationService;
 use hmcsw\exception\ApiErrorException;
 use hmcsw\infrastructure\module\loginMethod\LoginMethodAuthorizeDto;
 use hmcsw\infrastructure\module\ModuleLoginMethodRepository;
 use hmcsw\service\config\ConfigService;
 use hmcsw\user\domain\User;
+use hmcsw\user\domain\UserExternalAccount;
 use RestCord\DiscordClient;
 
 class discordOAuth2 implements ModuleLoginMethodRepository
@@ -24,7 +26,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
 
     $this->tokenURL = "https://discordapp.com/api/oauth2/token";
     $this->resourceURL = "https://discordapp.com/api/users/@me";
-    $this->uri = ConfigService::getPublicUrl() . "/auth/r/".$this->getModuleInfo()['identifier'];
+    $this->uri = AuthorizationService::getExternalAccountReturnUrl();
     $this->public = $this->config['public'];
     $this->secret = $this->config['secret'];
     $this->scope = "identify email";
@@ -62,19 +64,19 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     return new DiscordClient(['token' => $this->config['bot_token'], "throwOnRatelimit" => true]);
   }
 
-  public function onConnect(User $user, $externalId): void
+  public function onConnect(UserExternalAccount $account): void
   {
     try {
-      $this->getDiscord()->guild->addGuildMemberRole(['guild.id' => (int)$this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
+      $this->getDiscord()->guild->addGuildMemberRole(['guild.id' => (int)$this->config['guild_id'], 'user.id' => (int)$account->getExternalId(), 'role.id' => (int)$this->config['customer_role']]);
     } catch (\Exception $e) {
       
     }
   }
 
-  public function onDisconnect(User $user, $externalId): void
+  public function onDisconnect(UserExternalAccount $account): void
   { 
     try {
-      $this->getDiscord()->guild->removeGuildMemberRole(['guild.id' => $this->config['guild_id'], 'user.id' => (int)$externalId, 'role.id' => (int)$this->config['customer_role']]);
+      $this->getDiscord()->guild->removeGuildMemberRole(['guild.id' => $this->config['guild_id'], 'user.id' => (int)$account->getExternalId(), 'role.id' => (int)$this->config['customer_role']]);
     } catch (\Exception $e) {
 
     }
@@ -104,7 +106,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     curl_close($token);
 
     if (isset($resp['message'])) {
-      throw new ApiErrorException($resp['message'], $resp['code']);
+      throw new ApiErrorException($resp['message']);
     }
 
     $needScopes = explode(" ", $this->scope);
@@ -115,7 +117,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
       }
     }
 
-    $access_token = $resp['access_token'];
+    $access_token = $resp['access_token'] ?? "";
 
     $info = curl_init();
     curl_setopt_array($info, [CURLOPT_URL => $this->resourceURL, CURLOPT_CUSTOMREQUEST => "GET", CURLOPT_HTTPHEADER => ["Authorization: Bearer " . $access_token, "cache-control: no-cache"]]);
@@ -124,7 +126,7 @@ class discordOAuth2 implements ModuleLoginMethodRepository
     $info_resp = json_decode(curl_exec($info), true);
 
     if (isset($info_resp['message'])) {
-      throw new ApiErrorException($info_resp['message'], $info_resp['code']);
+      throw new ApiErrorException($info_resp['message']);
     }
 
     return new LoginMethodAuthorizeDto($info_resp['id'], $info_resp['email'], $info_resp['username'], 'https://cdn.discord.com/avatars/'. $info_resp['id']. '/'. $info_resp['avatar'] .'.png');
